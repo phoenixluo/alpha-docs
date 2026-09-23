@@ -1,0 +1,34 @@
+{
+  "title": {
+    "message": "Alpha Docs",
+    "description": "The title in the navbar"
+  },
+  "logo.alt": {
+    "message": "Alpha Cargo",
+    "description": "The alt text of navbar logo"
+  },
+  "item.label.用户指南": {
+    "message": "User Guide",
+    "description": "Navbar item with label 用户指南"
+  },
+  "item.label.开发者指南": {
+    "message": "Developer Guide",
+    "description": "Navbar item with label 开发者指南"
+  },
+  "item.label.下载 Postman": {
+    "message": "Download Postman",
+    "description": "Navbar item with label 下载 Postman"
+  },
+  "item.label.TMS 运输管理": {
+    "message": "TMS Transport Management",
+    "description": "Navbar item with label TMS 运输管理"
+  },
+  "item.label.WMS 仓储管理": {
+    "message": "WMS Warehouse Management",
+    "description": "Navbar item with label WMS 仓储管理"
+  },
+  "item.label.Voice 语音": {
+    "message": "Voice",
+    "description": "Navbar item with label Voice 语音"
+  }
+}

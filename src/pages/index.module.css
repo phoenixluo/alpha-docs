@@ -15,6 +15,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .productLink {
@@ -49,4 +51,20 @@
 
 .productCard :global(.card__header) h3 {
   margin: 0;
+}
+
+.audience {
+  font-size: 0.8rem;
+  color: var(--ifm-color-emphasis-600);
+  white-space: nowrap;
+}
+
+.productCard :global(.card__footer) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.productBadge {
+  font-weight: 500;
 }

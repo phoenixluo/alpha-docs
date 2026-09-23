@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Alpha Docs',
-  tagline: 'Alpha Cargo 开发者文档',
+  tagline: 'Alpha Cargo 产品文档',
   favicon: 'img/favicon.ico',
 
   future: {
@@ -35,7 +35,14 @@ const config: Config = {
   i18n: {
     // zh-Hans rather than zh: Docusaurus ships translated theme strings for it.
     defaultLocale: 'zh-Hans',
-    locales: ['zh-Hans'],
+    // The developer guide is Chinese only; an English reader following
+    // /en/tms/* gets the Chinese page back, which is Docusaurus' normal
+    // fallback. Only the user guide is translated for now.
+    locales: ['zh-Hans', 'en'],
+    localeConfigs: {
+      'zh-Hans': { label: '简体中文' },
+      en: { label: 'English' },
+    },
   },
 
   presets: [
@@ -56,6 +63,33 @@ const config: Config = {
     ],
   ],
 
+  plugins: [
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        // The user guide. One instance holding all three products, each in
+        // its own folder, so /guide/wms can be split out into an instance of
+        // its own later without moving a single published URL.
+        id: 'guide',
+        path: 'guide',
+        routeBasePath: '/guide',
+        sidebarPath: './sidebars-guide.ts',
+      },
+    ],
+    [
+      require.resolve('@easyops-cn/docusaurus-search-local'),
+      {
+        // Chinese has no spaces to tokenise on, so the stock search cannot
+        // index this site at all.
+        language: ['zh', 'en'],
+        docsDir: ['docs', 'guide'],
+        docsRouteBasePath: ['/tms', '/guide'],
+        indexBlog: false,
+        hashed: true,
+      },
+    ],
+  ],
+
   themeConfig: {
     colorMode: {
       respectPrefersColorScheme: true,
@@ -68,15 +102,47 @@ const config: Config = {
       },
       items: [
         {
+          // A dropdown rather than a link: the per-product split is the point,
+          // and it should be visible from every page.
+          type: 'dropdown',
+          label: '用户指南',
+          position: 'left',
+          to: '/guide/',
+          items: [
+            {
+              type: 'docSidebar',
+              docsPluginId: 'guide',
+              sidebarId: 'guideTmsSidebar',
+              label: 'TMS 运输管理',
+            },
+            {
+              type: 'docSidebar',
+              docsPluginId: 'guide',
+              sidebarId: 'guideWmsSidebar',
+              label: 'WMS 仓储管理',
+            },
+            {
+              type: 'docSidebar',
+              docsPluginId: 'guide',
+              sidebarId: 'guideVoiceSidebar',
+              label: 'Voice 语音',
+            },
+          ],
+        },
+        {
           type: 'docSidebar',
           sidebarId: 'tmsSidebar',
           position: 'left',
-          label: 'TMS 开发者指南',
+          label: '开发者指南',
         },
         {
           href: '/tms/postman',
           label: '下载 Postman',
           position: 'left',
+        },
+        {
+          type: 'localeDropdown',
+          position: 'right',
         },
       ],
     },
@@ -84,7 +150,15 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: '文档',
+          title: '用户指南',
+          items: [
+            { label: 'TMS 运输管理', to: '/guide/tms/' },
+            { label: 'WMS 仓储管理', to: '/guide/wms/' },
+            { label: 'Voice 语音', to: '/guide/voice/' },
+          ],
+        },
+        {
+          title: '开发者指南',
           items: [
             { label: '快速开始', to: '/tms/' },
             { label: '组织鉴权', to: '/tms/authentication' },

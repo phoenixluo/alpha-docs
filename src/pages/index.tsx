@@ -1,92 +1,132 @@
 import type { ReactNode } from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
+import Translate, { translate } from '@docusaurus/Translate';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import Heading from '@theme/Heading';
 
 import styles from './index.module.css';
 
-type Product = {
+type Guide = {
   title: string;
+  audience: string;
   description: string;
-  to?: string;
-  status: '可用' | '敬请期待';
+  to: string;
+  products: { name: string; ready: boolean }[];
 };
 
-const PRODUCTS: Product[] = [
-  {
-    title: 'TMS 运输管理',
-    description: '运单、地址解析、整车装载规划、报价下单、轨迹跟踪与事件推送。',
-    to: '/tms',
-    status: '可用',
-  },
-  {
-    title: 'WMS 仓储管理',
-    description: '入库、库存、拣货与出库作业。',
-    status: '敬请期待',
-  },
-  {
-    title: 'Voice 语音',
-    description: '语音交互与通话处理能力。',
-    status: '敬请期待',
-  },
+// Both guides list all three products: what differs is which are written yet.
+const PRODUCTS = (tms: boolean, wms: boolean, voice: boolean) => [
+  { name: 'TMS', ready: tms },
+  { name: 'WMS', ready: wms },
+  { name: 'Voice', ready: voice },
 ];
 
-function ProductCard({ title, description, to, status }: Product) {
-  const body = (
-    <div className={clsx('card', styles.productCard)}>
-      <div className="card__header">
-        <Heading as="h3">{title}</Heading>
-        <span
-          className={clsx(
-            'badge',
-            status === '可用' ? 'badge--success' : 'badge--secondary',
-          )}
-        >
-          {status}
-        </span>
-      </div>
-      <div className="card__body">
-        <p>{description}</p>
-      </div>
-    </div>
-  );
+function useGuides(): Guide[] {
+  return [
+    {
+      title: translate({ id: 'home.guide.user.title', message: '用户指南' }),
+      audience: translate({
+        id: 'home.guide.user.audience',
+        message: '给使用产品的人',
+      }),
+      description: translate({
+        id: 'home.guide.user.description',
+        message: '录单、排车、扫码、对账——按菜单逐项说明怎么操作。',
+      }),
+      to: '/guide/',
+      products: PRODUCTS(true, false, false),
+    },
+    {
+      title: translate({ id: 'home.guide.dev.title', message: '开发者指南' }),
+      audience: translate({
+        id: 'home.guide.dev.audience',
+        message: '给对接系统的人',
+      }),
+      description: translate({
+        id: 'home.guide.dev.description',
+        message: '签名鉴权、运单接口、地址解析、装载规划与事件推送。',
+      }),
+      to: '/tms/',
+      products: PRODUCTS(true, false, false),
+    },
+  ];
+}
 
-  return to ? (
+function GuideCard({ title, audience, description, to, products }: Guide) {
+  const comingSoon = translate({
+    id: 'home.product.comingSoon',
+    message: '敬请期待',
+  });
+
+  return (
     <Link to={to} className={styles.productLink}>
-      {body}
+      <div className={clsx('card', styles.productCard)}>
+        <div className="card__header">
+          <Heading as="h3">{title}</Heading>
+          <span className={styles.audience}>{audience}</span>
+        </div>
+        <div className="card__body">
+          <p>{description}</p>
+        </div>
+        <div className="card__footer">
+          {products.map(({ name, ready }) => (
+            <span
+              key={name}
+              className={clsx(
+                'badge',
+                ready ? 'badge--success' : 'badge--secondary',
+                styles.productBadge,
+              )}
+            >
+              {ready ? name : `${name} · ${comingSoon}`}
+            </span>
+          ))}
+        </div>
+      </div>
     </Link>
-  ) : (
-    <div className={styles.productLink}>{body}</div>
   );
 }
 
 export default function Home(): ReactNode {
   const { siteConfig } = useDocusaurusContext();
+  const guides = useGuides();
+
   return (
     <Layout
-      title="开发者文档"
-      description="Alpha Cargo 开发者文档 —— TMS 接口接入指南"
+      title={translate({ id: 'home.meta.title', message: '产品文档' })}
+      description={translate({
+        id: 'home.meta.description',
+        message: 'Alpha Cargo 产品文档 —— 用户操作指南与接口接入指南',
+      })}
     >
       <header className={clsx('hero hero--primary', styles.heroBanner)}>
         <div className="container">
           <Heading as="h1" className="hero__title">
             {siteConfig.title}
           </Heading>
-          <p className="hero__subtitle">{siteConfig.tagline}</p>
+          <p className="hero__subtitle">
+            <Translate id="home.tagline">Alpha Cargo 产品文档</Translate>
+          </p>
           <div className={styles.buttons}>
-            <Link className="button button--secondary button--lg" to="/tms">
-              开始接入 TMS
+            <Link className="button button--secondary button--lg" to="/guide/">
+              <Translate id="home.cta.guide">查看用户指南</Translate>
+            </Link>
+            <Link
+              className="button button--outline button--secondary button--lg"
+              to="/tms/"
+            >
+              <Translate id="home.cta.api">开始接入 API</Translate>
             </Link>
           </div>
         </div>
       </header>
       <main className="container margin-vert--lg">
         <div className="row">
-          {PRODUCTS.map((product) => (
-            <div key={product.title} className="col col--4 margin-bottom--lg">
-              <ProductCard {...product} />
+          {guides.map((guide) => (
+            <div key={guide.title} className="col col--6 margin-bottom--lg">
+              <GuideCard {...guide} />
             </div>
           ))}
         </div>

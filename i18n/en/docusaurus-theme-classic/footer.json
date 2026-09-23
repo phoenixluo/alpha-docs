@@ -1,0 +1,42 @@
+{
+  "link.title.用户指南": {
+    "message": "User Guide",
+    "description": "The title of the footer links column with title=用户指南 in the footer"
+  },
+  "link.title.开发者指南": {
+    "message": "Developer Guide",
+    "description": "The title of the footer links column with title=开发者指南 in the footer"
+  },
+  "link.title.产品": {
+    "message": "Products",
+    "description": "The title of the footer links column with title=产品 in the footer"
+  },
+  "link.item.label.TMS 运输管理": {
+    "message": "TMS Transport Management",
+    "description": "The label of footer link with label=TMS 运输管理 linking to /guide/tms/"
+  },
+  "link.item.label.WMS 仓储管理": {
+    "message": "WMS Warehouse Management",
+    "description": "The label of footer link with label=WMS 仓储管理 linking to /guide/wms/"
+  },
+  "link.item.label.Voice 语音": {
+    "message": "Voice",
+    "description": "The label of footer link with label=Voice 语音 linking to /guide/voice/"
+  },
+  "link.item.label.快速开始": {
+    "message": "Quick Start",
+    "description": "The label of footer link with label=快速开始 linking to /tms/"
+  },
+  "link.item.label.组织鉴权": {
+    "message": "Authentication",
+    "description": "The label of footer link with label=组织鉴权 linking to /tms/authentication"
+  },
+  "link.item.label.Postman": {
+    "message": "Postman",
+    "description": "The label of footer link with label=Postman linking to /tms/postman"
+  },
+  "link.item.label.Alpha Cargo TMS": {
+    "message": "Alpha Cargo TMS",
+    "description": "The label of footer link with label=Alpha Cargo TMS linking to /"
+  }
+}
