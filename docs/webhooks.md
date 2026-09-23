@@ -40,14 +40,15 @@ sidebar_position: 6
 
 ## 可订阅的触发器
 
-| 触发器 | 时机 |
-|---|---|
-| `delivery_event_created` | 产生新的轨迹事件（最常用） |
-| `waybill_received` | 收到新运单 |
-| `waybill_canceled` | 运单被取消 |
-| `waybill_paid` | 运单已付款 |
-| `delivery_arranged` | 已安排配送 |
-| `scheduled_task` | 定时任务 |
+| 触发器 | 时机 | 推送内容 |
+|---|---|---|
+| `delivery_event_created` | 产生新的轨迹事件（最常用） | 事件 + 运单摘要 |
+| `waybill_received` | 收到新运单 | 完整运单 |
+| `waybill_canceled` | 运单被取消 | 完整运单 |
+| `waybill_paid` | 运单已付款 | 完整运单 |
+| `scheduled_task` | 定时任务 | `{ triggeredAt }` |
+
+本文其余部分以最常用的 `delivery_event_created` 为例。运单类触发器推送的 `data` 是完整的运单对象，字段与 `GET /api/waybills/{waybillNo}` 一致。
 
 ## 推送内容
 
