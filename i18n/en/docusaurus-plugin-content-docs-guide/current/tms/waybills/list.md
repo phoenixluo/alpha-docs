@@ -1,0 +1,82 @@
+---
+id: list
+title: The waybill list
+sidebar_position: 1
+---
+
+# The waybill list
+
+**Waybills** is where you land after signing in, and the page you'll use most.
+
+## How the page is laid out
+
+The left third is the waybill list; the right shows the selected waybill's details and
+tracking. Click a row and the right-hand side follows.
+
+Above the list are **Waybills** and the total count, with **Export** and **Import** in
+the top right.
+
+:::tip
+Every row has a checkbox. **Clicking a row opens it; ticking a row selects it** for a
+bulk action. Two different things.
+:::
+
+## Searching and filtering
+
+The search box at the top matches waybill numbers, recipients and similar. **Filters**
+(shown as **More** on narrow screens) opens the full set:
+
+| Filter | What it narrows by |
+|---|---|
+| Service area | Delivery zone |
+| Station | Departure / collection station |
+| Contractor | The upstream party who gave you the goods |
+| Subcontractor | The downstream carrier you handed them to |
+| Sender code | Exact sender account code |
+| Statuses | Multiple selection |
+| Service | The service sold |
+| Route leg | **Master waybills only** excludes the sub-waybills produced by legs |
+| Date | A **From** / **To** range |
+| Show only unassigned | Goods not yet handed to anyone |
+
+Click **Search** to apply, **Clear** to reset.
+
+## Bulk actions
+
+Tick one or more rows and an action bar appears above the list showing how many are
+selected, with an **Assign** dropdown on the right:
+
+| Action | What it does |
+|---|---|
+| **Assign Subcontractor** | Hand these waybills to a carrier — see [Assigning a subcontractor](./subcontract) |
+| **Add Tracking Event** | Record a status by hand — see [Adding tracking events](./events) |
+| **Print Label** | Generate label PDFs — see [Printing labels](./labels) |
+| **Cancel Waybill** | Void these waybills |
+| **Consolidate Waybills** | Merge into one — see [Consolidating waybills](./consolidate). Hidden when the conditions aren't met |
+
+The bar also totals the selected waybills' **count, weight, volume and largest
+dimensions** — the fastest way to judge whether a vehicle will take them.
+
+**Clear selection** unticks everything.
+
+## Exporting
+
+**Export** exports the current filtered result. There is a per-export row limit; exceed
+it and you're asked to narrow the filter first.
+
+Exports run in the background, so you don't have to wait on the page. Past exports are
+listed next to the button, ready to download once they finish.
+
+## Where waybills come from
+
+Three sources:
+
+1. **Import** — upload a spreadsheet, see [Importing waybills](./import);
+2. **The API** — pushed in by your system or your customer's, see the
+   [Developer Guide](/tms/waybills);
+3. **Sub-waybills** — generated automatically when a consignment travels in legs.
+
+:::note There is no "new waybill" button
+Waybills are a bulk business, so the interface has no one-at-a-time entry form. If you
+only have one, [import](./import) a single row.
+:::

@@ -2,5 +2,41 @@
   "version.label": {
     "message": "Next",
     "description": "The label for version current"
+  },
+  "sidebar.guideTmsSidebar.category.开始使用": {
+    "message": "Getting started",
+    "description": "The label for category '开始使用' in sidebar 'guideTmsSidebar'"
+  },
+  "sidebar.guideTmsSidebar.category.运单": {
+    "message": "Waybills",
+    "description": "The label for category '运单' in sidebar 'guideTmsSidebar'"
+  },
+  "sidebar.guideTmsSidebar.category.配送": {
+    "message": "Delivery",
+    "description": "The label for category '配送' in sidebar 'guideTmsSidebar'"
+  },
+  "sidebar.guideTmsSidebar.category.司机": {
+    "message": "Drivers",
+    "description": "The label for category '司机' in sidebar 'guideTmsSidebar'"
+  },
+  "sidebar.guideTmsSidebar.category.合作伙伴": {
+    "message": "Partners",
+    "description": "The label for category '合作伙伴' in sidebar 'guideTmsSidebar'"
+  },
+  "sidebar.guideTmsSidebar.category.账单与财务": {
+    "message": "Billing & finance",
+    "description": "The label for category '账单与财务' in sidebar 'guideTmsSidebar'"
+  },
+  "sidebar.guideTmsSidebar.category.设置": {
+    "message": "Settings",
+    "description": "The label for category '设置' in sidebar 'guideTmsSidebar'"
+  },
+  "sidebar.guideTmsSidebar.category.面向客户": {
+    "message": "For your customers",
+    "description": "The label for category '面向客户' in sidebar 'guideTmsSidebar'"
+  },
+  "sidebar.guideTmsSidebar.category.参考": {
+    "message": "Reference",
+    "description": "The label for category '参考' in sidebar 'guideTmsSidebar'"
   }
 }
