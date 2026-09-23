@@ -34,6 +34,19 @@ Alpha Cargo TMS 管的是货从**发出**到**签收**的全过程：录运单�
 - **客户**（Contractors）—— 把货交给你运的人，也就是你的上家。
 - **承运商**（Subcontractors）—— 你把货交出去让它运的人，也就是你的下家。
 
+## 从哪儿开始读
+
+| 你要做的事 | 看这里 |
+|---|---|
+| 刚拿到账号 | [注册与登录](/guide/tms/getting-started/signup) → [界面导航](/guide/tms/getting-started/navigation) |
+| 先搞懂几个词 | [核心概念](/guide/tms/getting-started/concepts) |
+| 录单、查件、打标签 | [运单列表](/guide/tms/waybills/list) 起头的运单一章 |
+| 排车派司机 | [配送规划](/guide/tms/delivery/planning) |
+| 带司机上手 | [司机扫码](/guide/tms/driver/scan) 和[送达确认](/guide/tms/driver/pod) |
+| 查某个状态是什么意思 | [运单状态参考](/guide/tms/waybills/statuses) |
+
+计费、合作伙伴、设置几章正在补，会陆续上线。
+
 ## 看不到某个菜单？
 
 TMS 的菜单是**双重门**：
