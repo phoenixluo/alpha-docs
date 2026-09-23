@@ -1,0 +1,1305 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-0000-4000-8000-alphacargotms1",
+    "name": "Alpha Cargo TMS API",
+    "description": "Alpha Cargo TMS 开发者接入 Collection。\n\n完整文档：https://docs.alphacargo.io/tms\n\n## 用法\n\n1. 导入本 Collection 和配套的 Environment\n2. 在 Environment 里填写 apiKey 与 apiSecret（后台：设置 → 组织 → API Credentials）\n3. 先跑 ① 的\"连通性自检\"，通过后再跑其他请求\n\n## 自动签名\n\nCollection 级的 Pre-request Script 会为每个请求自动计算签名：\n\n    sign = HMAC-SHA256(api_secret, canonicalJson(payload 去掉 sign))  大写十六进制\n\nPOST/PUT/PATCH/DELETE 写入 JSON body；GET 写入 query string（值一律转字符串）。\n你不需要修改这段脚本。\n\n## 执行顺序\n\n部分请求依赖前面请求写入的环境变量（waybillNo、quotationId、deliveryId 等），建议在每个文件夹内按从上到下的顺序执行。\n\n## 注意\n\n- ④A 需要先从后台复制 serviceId / serviceAreaId / vehicleTypeId 填入环境变量\n- ④B 的\"支付\"会真正创建订单\n- ② 的\"取消运单\"会真正取消运单",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// ---------------------------------------------------------------------------",
+          "// Alpha Cargo TMS —— 自动签名",
+          "//",
+          "//   sign = HMAC-SHA256(api_secret, canonicalJson(payload 去掉 sign))  大写十六进制",
+          "//",
+          "//   POST/PUT/PATCH/DELETE -> 签名字段写入 JSON body",
+          "//   GET                   -> 签名字段写入 query string（值一律转字符串）",
+          "//",
+          "// 你不需要改这段脚本，只要在环境变量里填好 apiKey / apiSecret。",
+          "// ---------------------------------------------------------------------------",
+          "",
+          "function canonicalizeJson(obj) {",
+          "    if (obj === null) return 'null';",
+          "    if (obj === undefined) return 'undefined';",
+          "    if (typeof obj === 'boolean') return obj.toString();",
+          "    if (typeof obj === 'number') {",
+          "        if (Number.isNaN(obj)) return 'null';",
+          "        if (!Number.isFinite(obj)) return 'null';",
+          "        return obj.toString();",
+          "    }",
+          "    if (typeof obj === 'string') return JSON.stringify(obj);",
+          "    if (obj instanceof Date) return JSON.stringify(obj.toISOString());",
+          "    if (Array.isArray(obj)) {",
+          "        return '[' + obj.map(function (item) { return canonicalizeJson(item); }).join(',') + ']';",
+          "    }",
+          "    if (typeof obj === 'object') {",
+          "        var pairs = Object.keys(obj).sort()",
+          "            .filter(function (key) { return obj[key] !== undefined; })",
+          "            .map(function (key) {",
+          "                return JSON.stringify(key) + ':' + canonicalizeJson(obj[key]);",
+          "            });",
+          "        return '{' + pairs.join(',') + '}';",
+          "    }",
+          "    return JSON.stringify(obj);",
+          "}",
+          "",
+          "function hmacUpperHex(message, secret) {",
+          "    return CryptoJS.HmacSHA256(message, secret).toString(CryptoJS.enc.Hex).toUpperCase();",
+          "}",
+          "",
+          "var apiKey = pm.environment.get('apiKey');",
+          "var apiSecret = pm.environment.get('apiSecret');",
+          "",
+          "if (!apiKey || !apiSecret) {",
+          "    throw new Error('请先在环境变量里填写 apiKey 和 apiSecret（后台：设置 → 组织 → API Credentials）');",
+          "}",
+          "",
+          "var method = pm.request.method.toUpperCase();",
+          "var nonceStr = String(Date.now());",
+          "",
+          "if (method === 'GET') {",
+          "    // query 参数到服务端都是字符串，所以签名前必须统一转成字符串。",
+          "    var payload = {};",
+          "    pm.request.url.query.each(function (param) {",
+          "        if (!param.key || param.disabled) return;",
+          "        if (param.key === 'api_key' || param.key === 'nonceStr' || param.key === 'sign') return;",
+          "        payload[param.key] = String(pm.variables.replaceIn(param.value === null ? '' : param.value));",
+          "    });",
+          "    payload.api_key = apiKey;",
+          "    payload.nonceStr = nonceStr;",
+          "    var getSign = hmacUpperHex(canonicalizeJson(payload), apiSecret);",
+          "",
+          "    pm.request.url.query.remove(function (p) {",
+          "        return p.key === 'api_key' || p.key === 'nonceStr' || p.key === 'sign';",
+          "    });",
+          "    pm.request.url.query.add({ key: 'api_key', value: apiKey });",
+          "    pm.request.url.query.add({ key: 'nonceStr', value: nonceStr });",
+          "    pm.request.url.query.add({ key: 'sign', value: getSign });",
+          "} else {",
+          "    var body = {};",
+          "    var raw = pm.request.body && pm.request.body.raw ? pm.request.body.raw.trim() : '';",
+          "    if (raw) {",
+          "        try {",
+          "            body = JSON.parse(pm.variables.replaceIn(raw));",
+          "        } catch (e) {",
+          "            throw new Error('请求体不是合法 JSON，无法签名：' + e.message);",
+          "        }",
+          "    }",
+          "    delete body.sign;",
+          "    body.api_key = apiKey;",
+          "    body.nonceStr = nonceStr;",
+          "    body.sign = hmacUpperHex(canonicalizeJson(body), apiSecret);",
+          "",
+          "    pm.request.body.update({ mode: 'raw', raw: JSON.stringify(body, null, 2) });",
+          "    pm.request.headers.upsert({ key: 'Content-Type', value: 'application/json' });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [],
+  "item": [
+    {
+      "name": "① 组织鉴权",
+      "description": "先确认凭证可用，再写业务代码。\n\n签名由 Collection 级的 Pre-request Script 自动完成，你只需要在环境变量里填 apiKey / apiSecret。",
+      "item": [
+        {
+          "name": "连通性自检 — 获取组织信息",
+          "id": "req-1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizations"
+              ]
+            },
+            "description": "最干净的自检入口：不受套餐限制。\n\n返回你的组织信息即表示凭证与签名都正常。\n\n若返回 401，检查：\n1. apiKey / apiSecret 是否填对\n2. 本机时钟是否与真实时间相差超过 5 分钟"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('凭证有效（200）', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('返回了组织信息', function () {",
+                  "    pm.expect(pm.response.json()).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "客户账号列表（模式 B 需要）",
+          "id": "req-2",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sender-accounts?limit=20&is_active=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sender-accounts"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "is_active",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "取 X-Sender-Account-Id 用的客户账号 UUID。\n\n需要 sender_accounts 套餐功能。\n\n测试脚本会把第一个账号的 id 自动写入环境变量 senderAccountId，供 ④B 的请求使用。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('请求成功', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var rows = (pm.response.json() || {}).data || [];",
+                  "if (rows.length > 0 && rows[0].id) {",
+                  "    pm.environment.set('senderAccountId', rows[0].id);",
+                  "    console.log('已写入 senderAccountId =', rows[0].id);",
+                  "} else {",
+                  "    console.warn('没有客户账号，④B 的请求需要先在后台创建一个');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "② 运单 CRUD",
+      "description": "运单 = 一票货。\n\n请求体使用 camelCase 字段名（outTradeNo / parcelList / receiver*），不是 recipient / packages。\n\n需要 waybills 套餐功能。",
+      "item": [
+        {
+          "name": "建单",
+          "id": "req-3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/waybills?overwrite=return_existing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "waybills"
+              ],
+              "query": [
+                {
+                  "key": "overwrite",
+                  "value": "return_existing"
+                }
+              ]
+            },
+            "description": "必填：outTradeNo（你自己的单号，作为幂等键）、parcelList（至少 1 个包裹）。\n\n未传 route_id 时，senderPhone 与 receiverName/receiverPhone/receiverProvinceName/receiverCityName/receiverPostCode/receiverAddress 均为必填。\n\noverwrite 取值：reject（默认）| overwrite | return_existing | return_if_accepted。\n这里用 return_existing，方便你反复点击而不报重复单错误。\n\n测试脚本会把返回的运单号写入环境变量 waybillNo / waybillId。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"outTradeNo\": \"DEMO-{{$timestamp}}\",\n  \"senderName\": \"Acme 仓库\",\n  \"senderPhone\": \"0212345678\",\n  \"senderAddress\": \"123 Sukhumvit Road\",\n  \"senderCityName\": \"Bangkok\",\n  \"senderPostCode\": \"10110\",\n  \"receiverName\": \"张三\",\n  \"receiverPhone\": \"0812345678\",\n  \"receiverProvinceName\": \"Bangkok\",\n  \"receiverCityName\": \"Bangkok\",\n  \"receiverDistrictName\": \"Chatuchak\",\n  \"receiverPostCode\": \"10900\",\n  \"receiverAddress\": \"456 Phaholyothin Road\",\n  \"parcelList\": [\n    {\n      \"outParcelNo\": \"PKG-{{$timestamp}}\",\n      \"itemDesc\": \"电子产品\",\n      \"itemValue\": 1200,\n      \"weight\": 1.5,\n      \"length\": 30,\n      \"width\": 20,\n      \"height\": 15\n    }\n  ],\n  \"remark\": \"易碎，轻拿轻放\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('建单成功（200/201）', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var b = pm.response.json() || {};",
+                  "var wb = b.data || b;",
+                  "if (wb.waybill_no) {",
+                  "    pm.environment.set('waybillNo', wb.waybill_no);",
+                  "    console.log('已写入 waybillNo =', wb.waybill_no);",
+                  "}",
+                  "if (wb.id) {",
+                  "    pm.environment.set('waybillId', wb.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "运单列表",
+          "id": "req-4",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/waybills?page=1&pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "waybills"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "GET 请求的签名字段在 query string 里，且所有参数值签名前都会被转成字符串——Pre-request Script 已经处理好了。\n\n返回 { data, total, page, pageSize, totalPages }。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('请求成功', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "运单详情",
+          "id": "req-5",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/waybills/{{waybillNo}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "waybills",
+                "{{waybillNo}}"
+              ]
+            },
+            "description": "路径参数既可以传系统运单号，也可以传你自己的 outTradeNo，系统会自动识别。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('请求成功', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "查询运单轨迹",
+          "id": "req-6",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/waybills/{{waybillNo}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "waybills",
+                "{{waybillNo}}",
+                "events"
+              ]
+            },
+            "description": "注意 routes[].createdAt 是 Unix 秒，不是毫秒，也不是 ISO 字符串。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('请求成功', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('返回轨迹结构', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('routes');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "修改运单",
+          "id": "req-7",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/waybills/{{waybillNo}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "waybills",
+                "{{waybillNo}}"
+              ]
+            },
+            "description": "只接受这 7 个字段：reference_no、notes、tags、priority、requires_signature、sender_account_id、product_category_id。\n\n传空对象会返回 400。\n\n要改地址/包裹/重量，请用 overwrite=overwrite 重新推送整张单。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"客户要求下午送达\",\n  \"tags\": [\n    \"urgent\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('请求成功', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "预分配单号",
+          "id": "req-8",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/waybills/allocate-number",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "waybills",
+                "allocate-number"
+              ]
+            },
+            "description": "需要先拿单号再建单时使用（比如要先印面单）。\n\n请求体除签名字段外为空。需要组织启用自定义单号，否则返回 409。",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "面单 PDF",
+          "id": "req-9",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/waybills/{{waybillNo}}/label",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "waybills",
+                "{{waybillNo}}",
+                "label"
+              ]
+            },
+            "description": "返回 application/pdf 二进制流，不是 JSON。\n\n可选 query 参数 packageId 用于只打某一个包裹的面单。\n\n需要 waybills 套餐功能。"
+          },
+          "response": []
+        },
+        {
+          "name": "取消运单",
+          "id": "req-10",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/waybills/{{waybillNo}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "waybills",
+                "{{waybillNo}}"
+              ]
+            },
+            "description": "DELETE 的签名字段放在 JSON body 里，和 POST 一样。\n\n只有处于可取消状态的运单才能取消。\n\n⚠️ 这会真的取消运单，确认后再执行。",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "③ 地址解析",
+      "description": "把自由文本 / 地图链接 / 经纬度变成结构化地址 + 坐标。\n\n不受套餐限制。\n\n⚠️ 务必判断返回的 confidence：解析器总会返回点什么，兜底是省中心点（confidence 0.32）。",
+      "item": [
+        {
+          "name": "解析地址 — 自由文本",
+          "id": "req-11",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/address/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "address",
+                "resolve"
+              ]
+            },
+            "description": "最常用的模式。强烈建议传 country（ISO-2），它会影响地理编码的区域和语言偏好。\n\nconfidence ≥ 0.68 可直接使用；低于该值应转人工确认。\nsource 为 province_centroid / postal_centroid 时只匹配到了行政区，不要用于报价。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": \"123 Sukhumvit Rd, Bangkok\",\n  \"country\": \"TH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('解析成功', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var r = pm.response.json();",
+                  "pm.test('返回了坐标', function () {",
+                  "    pm.expect(r).to.have.property('lat');",
+                  "    pm.expect(r).to.have.property('lng');",
+                  "});",
+                  "console.log('confidence =', r.confidence, ' source =', r.source);",
+                  "if (r.confidence < 0.68) {",
+                  "    console.warn('置信度偏低，不建议直接用于报价');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "解析地址 — 地图链接",
+          "id": "req-12",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/address/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "address",
+                "resolve"
+              ]
+            },
+            "description": "传 Google Maps 分享链接或短链，解析成坐标。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://maps.app.goo.gl/example\",\n  \"country\": \"TH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "解析地址 — 经纬度反查",
+          "id": "req-13",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/address/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "address",
+                "resolve"
+              ]
+            },
+            "description": "已有坐标，反查结构化地址。纬度 ±90、经度 ±180，超出范围返回 400。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lat\": 13.7563,\n  \"lng\": 100.5018,\n  \"country\": \"TH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "行政区三级列表",
+          "id": "req-14",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/regions?country=TH",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "regions"
+              ],
+              "query": [
+                {
+                  "key": "country",
+                  "value": "TH"
+                }
+              ]
+            },
+            "description": "country 必填，否则 400。返回 provinces → cities → districts 三级嵌套。\n\n可加 postal_code 按邮编过滤。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('请求成功', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "④A 自营装载规划",
+      "description": "货已经是你的，自己排车。需要 delivery.planning 套餐功能。\n\n⚠️ 前置准备：serviceId / serviceAreaId / vehicleTypeId 目前只能从后台复制，填进环境变量后再跑本组请求。originUnitId 可用 GET /api/organization-units 查询。",
+      "item": [
+        {
+          "name": "网点列表（取 originUnitId）",
+          "id": "req-15",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/organization-units",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organization-units"
+              ]
+            },
+            "description": "四个规划参数里唯一有开放查询接口的一个。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('请求成功', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var b = pm.response.json();",
+                  "var rows = Array.isArray(b) ? b : (b.data || []);",
+                  "if (rows.length > 0 && rows[0].id) {",
+                  "    pm.environment.set('originUnitId', rows[0].id);",
+                  "    console.log('已写入 originUnitId =', rows[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "试算能否装下（不落库）",
+          "id": "req-16",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/load-planning/fit-check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "load-planning",
+                "fit-check"
+              ]
+            },
+            "description": "回答\"这批货一辆这种车装不装得下\"。\n\nvehicle_type_id 和 delivery_id 至少给一个。这一步不创建任何数据。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waybill_ids\": [\n    \"{{waybillId}}\"\n  ],\n  \"vehicle_type_id\": \"{{vehicleTypeId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "生成分车方案（propose，不落库）",
+          "id": "req-17",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/load-planning/split",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "load-planning",
+                "split"
+              ]
+            },
+            "description": "让系统把运单分配到若干台车上，返回方案但不创建任何数据。\n\nobjective：fewest_vehicles（默认，车次最少）或 smallest_vehicles（车型最小）。\nkeep_recipient_together：同一收件人的货尽量装同一台车。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"propose\",\n  \"waybill_ids\": [\n    \"{{waybillId}}\"\n  ],\n  \"vehicle_type_ids\": [\n    \"{{vehicleTypeId}}\"\n  ],\n  \"objective\": \"fewest_vehicles\",\n  \"keep_recipient_together\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "确认方案，生成配送（accept）",
+          "id": "req-18",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/load-planning/split",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "load-planning",
+                "split"
+              ]
+            },
+            "description": "每个 group 创建一趟配送，并自动计算装载方案。\n\n服务端会重新校验分组（运单不重复、未被其他配送占用、车型存在），中途失败会自动回滚已创建的配送。\n\n测试脚本会把第一趟配送的 id 写入环境变量 deliveryId。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"accept\",\n  \"origin_unit_id\": \"{{originUnitId}}\",\n  \"service_area_id\": \"{{serviceAreaId}}\",\n  \"service_id\": \"{{serviceId}}\",\n  \"groups\": [\n    {\n      \"vehicle_type_id\": \"{{vehicleTypeId}}\",\n      \"waybill_ids\": [\n        \"{{waybillId}}\"\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var b = pm.response.json() || {};",
+                  "var list = b.deliveries || (b.data && b.data.deliveries) || [];",
+                  "if (list.length > 0 && list[0].id) {",
+                  "    pm.environment.set('deliveryId', list[0].id);",
+                  "    console.log('已写入 deliveryId =', list[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "查看装载方案",
+          "id": "req-19",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/load-planning/deliveries/{{deliveryId}}/plan",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "load-planning",
+                "deliveries",
+                "{{deliveryId}}",
+                "plan"
+              ]
+            },
+            "description": "{{deliveryId}} 必须是 UUID，否则返回 400 invalid_delivery_id。"
+          },
+          "response": []
+        },
+        {
+          "name": "回传轨迹事件",
+          "id": "req-20",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/delivery-events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "delivery-events"
+              ]
+            },
+            "description": "履约环节在你那边时，把轨迹回传给 TMS。需要 delivery.tracking 套餐功能。\n\nwaybill_id 与 package_id 二选一（package_id 优先）。\nphotos 支持 data:image/...;base64, 格式。\n\n事件冲突返回 409 且带 conflict: true。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waybill_id\": \"{{waybillId}}\",\n  \"event_type\": \"picked_up\",\n  \"coordinates\": \"13.7563,100.5018\",\n  \"notes\": \"已从仓库取件\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "④B 报价 → 支付 → 下单 → 跟踪",
+      "description": "给终端客户报价卖运力。本组接口都不受套餐限制。\n\n除\"创建报价\"外都需要 X-Sender-Account-Id（已在各请求头里引用 {{senderAccountId}}，先跑 ① 的\"客户账号列表\"自动填充）。\n\n⚠️ 该 header 不参与签名计算。",
+      "item": [
+        {
+          "name": "创建报价",
+          "id": "req-21",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              },
+              {
+                "key": "X-Sender-Account-Id",
+                "value": "{{senderAccountId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/quotes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quotes"
+              ]
+            },
+            "description": "⚠️ pickup / delivery 的 lat、lng 必填 —— 报价永远不会替你做地理编码。\n请先用 ③ 的地址解析拿到坐标，并自行判断 confidence 是否够高。\n\n不要自己传总重量/总体积，服务端从 items 推导。\n\n响应可能是单车（vehicle 有值）或多车组合（vehicles 有值、vehicle 为 null），客户端两种都要处理。\n\n报价默认有效期 30 分钟。\n\n这一步 X-Sender-Account-Id 可以不带（先报价、后认客户）。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request_id\": \"cart-{{$timestamp}}\",\n  \"pickup\": {\n    \"address\": \"123 Sukhumvit Rd, Bangkok\",\n    \"lat\": 13.7398,\n    \"lng\": 100.5601\n  },\n  \"delivery\": {\n    \"address\": \"456 Nimman Rd, Chiang Mai\",\n    \"lat\": 18.7953,\n    \"lng\": 98.967\n  },\n  \"items\": [\n    {\n      \"qty\": 2,\n      \"length_cm\": 100,\n      \"width_cm\": 80,\n      \"height_cm\": 60,\n      \"weight_kg\": 25,\n      \"name\": \"纸箱\"\n    }\n  ],\n  \"service_type\": \"ftl_transport\",\n  \"addons\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('报价成功', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var q = pm.response.json() || {};",
+                  "if (q.quotation_id) {",
+                  "    pm.environment.set('quotationId', q.quotation_id);",
+                  "    console.log('已写入 quotationId =', q.quotation_id);",
+                  "    console.log('报价金额 =', q.estimated_total, q.currency, ' 有效期至', q.expires_at);",
+                  "}",
+                  "if (q.vehicle === null && Array.isArray(q.vehicles)) {",
+                  "    console.log('这是多车组合报价，共', q.vehicles.length, '台车');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "报价列表",
+          "id": "req-22",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              },
+              {
+                "key": "X-Sender-Account-Id",
+                "value": "{{senderAccountId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/quotes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quotes"
+              ]
+            },
+            "description": "没有任何查询参数——客户由 X-Sender-Account-Id 决定，按创建时间倒序。\n\n每条记录带 delivery 字段，未支付时为 null。"
+          },
+          "response": []
+        },
+        {
+          "name": "报价详情",
+          "id": "req-23",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              },
+              {
+                "key": "X-Sender-Account-Id",
+                "value": "{{senderAccountId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/quotes/{{quotationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quotes",
+                "{{quotationId}}"
+              ]
+            },
+            "description": "⚠️ 读取一条无主报价会把它\"认领\"给当前客户账号（前提是仍 active 且未过期）。\n支付和取消不会认领，必须先读一次。\n\n不属于你的报价一律返回 404 not_found_or_forbidden。"
+          },
+          "response": []
+        },
+        {
+          "name": "可用支付方式",
+          "id": "req-24",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              },
+              {
+                "key": "X-Sender-Account-Id",
+                "value": "{{senderAccountId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/quotes/{{quotationId}}/payment-methods",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quotes",
+                "{{quotationId}}",
+                "payment-methods"
+              ]
+            },
+            "description": "渲染收银台前调它，不要硬编码支付方式列表。\n\n金额取自报价本身，不从 query 传。\n\n不可用的方式会带 unavailable_reason 返回，建议置灰并显示原因，而不是隐藏。"
+          },
+          "response": []
+        },
+        {
+          "name": "支付（会真正创建订单）",
+          "id": "req-25",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              },
+              {
+                "key": "X-Sender-Account-Id",
+                "value": "{{senderAccountId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/quotes/{{quotationId}}/pay",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quotes",
+                "{{quotationId}}",
+                "pay"
+              ]
+            },
+            "description": "⚠️ 这一步会自动创建运单和配送，然后发起收款。操作是幂等的。\n\ntype：qr（默认）| app | bank_transfer | wallet。type 为 app 时需要 bank_code。\n\n响应字段是 camelCase：tradeNo / qrImage / qrRawData / qrExpireTime / deliveryId。\n\ndeliveryId 就是后面跟踪要用的订单号。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"qr\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var r = pm.response.json() || {};",
+                  "if (r.deliveryId) {",
+                  "    pm.environment.set('deliveryId', r.deliveryId);",
+                  "    console.log('已写入 deliveryId =', r.deliveryId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "订单跟踪",
+          "id": "req-26",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              },
+              {
+                "key": "X-Sender-Account-Id",
+                "value": "{{senderAccountId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{deliveryId}}/tracking",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{deliveryId}}",
+                "tracking"
+              ]
+            },
+            "description": "⚠️ 路径参数是配送 ID（deliveryId），不是报价 ID。\n\n还不能跟踪时返回 HTTP 200 + { \"state\": \"awaiting_payment\" | \"awaiting_3pl\" }，客户端要先判断有没有 state 字段。\n\n服务端有 5 秒缓存，建议每 10 秒轮询一次直到终态。"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var r = pm.response.json() || {};",
+                  "if (r.state) {",
+                  "    console.log('订单尚不可跟踪，当前状态：', r.state);",
+                  "} else if (r.status) {",
+                  "    console.log('承运方 =', r.provider, ' 状态 =', r.status);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "取消报价 / 订单",
+          "id": "req-27",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              },
+              {
+                "key": "X-Sender-Account-Id",
+                "value": "{{senderAccountId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/quotes/{{quotationId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "quotes",
+                "{{quotationId}}",
+                "cancel"
+              ]
+            },
+            "description": "无请求体（除签名字段）。\n\n返回 quote_canceled（取消的是未支付报价）或 order_canceled（取消的是待付款订单）。\n\n已是终态时返回 409 already_terminal。",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "⑤ 配送事件 Webhook",
+      "description": "对外推送不是独立订阅功能，而是\"自动化规则\"的一种动作，配置在后台（设置 → 自动化：触发器 delivery_event_created + 动作 http_webhook），没有创建规则的 API。\n\n本组只提供一个结构演示请求，帮你了解推送体长什么样、以及怎么验签。\n\n⚠️ 推送不保证送达、不保证重试。请同时用 GET /api/waybills/{no}/events 定期对账。",
+      "item": [
+        {
+          "name": "推送体结构演示（发往 Postman Echo）",
+          "id": "req-28",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept-Language",
+                "value": "zh"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "https://postman-echo.com/post",
+              "protocol": "https",
+              "host": [
+                "postman-echo",
+                "com"
+              ],
+              "path": [
+                "post"
+              ]
+            },
+            "description": "这个请求发往 postman-echo.com，不是 TMS —— 它只是让你看清推送体的结构。\n\n真实推送会由 TMS 主动 POST 到你配置的地址，body 就是这个形状。\n\n验签方法：去掉 sign 后对整个 body 做规范化 JSON，用你的 api_secret 算 HMAC-SHA256，转大写十六进制，与 sign 比对（请用定长比较）。\n算法与请求签名完全一致。\n\n⚠️ 组织未配置 API 凭证时，推送不带 sign 字段，不可信。\n\n你的接口要：尽快返回 2xx；用 data.delivery_event_id 做幂等去重。",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"additional\": {},\n  \"data\": {\n    \"delivery_event_id\": \"uuid\",\n    \"waybill_id\": \"uuid\",\n    \"waybill_no\": \"TH00012345\",\n    \"external_waybill_no\": \"ORDER-2026-001\",\n    \"tags\": [\n      \"fragile\"\n    ],\n    \"place\": \"Bangkok Hub\",\n    \"event_type\": \"delivered\",\n    \"event_time\": \"2026-09-23T08:30:00Z\",\n    \"metadata\": {},\n    \"event\": \"delivery_event_created\",\n    \"service_id\": \"uuid\",\n    \"organization_ids\": [\n      \"uuid\"\n    ],\n    \"contractor_id\": null\n  },\n  \"context\": {\n    \"taskId\": \"uuid\",\n    \"organizationId\": \"uuid\",\n    \"timestamp\": \"2026-09-23T08:30:05Z\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
