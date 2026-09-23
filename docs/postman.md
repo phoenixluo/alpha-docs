@@ -16,7 +16,7 @@ sidebar_position: 7
 ## 使用步骤
 
 1. 在 Postman 里 **Import**，把上面两个文件都导入。
-2. 右上角环境切换到 **Alpha Cargo TMS — 开发环境**。
+2. 右上角环境切换到 **Alpha Cargo TMS — 测试环境**。
 3. 编辑环境变量，填入 `apiKey` 和 `apiSecret`（后台：**设置 → 组织 → API Credentials**）。
 4. 先跑 **① 组织鉴权 → 连通性自检**。返回 200 就可以继续。
 
@@ -83,4 +83,4 @@ sign = HMAC-SHA256(api_secret, canonicalJson(payload 去掉 sign))   大写十�
 
 ## 换到正式环境
 
-环境变量里的 `baseUrl` 默认是开发环境 `https://dev.alphacargo.io`。正式接入时改成你拿到的正式域名即可，其余不用动。
+环境变量里的 `baseUrl` 默认是测试环境 `https://staging.alphacargo.io`。正式接入时改成你拿到的生产域名即可，其余不用动。

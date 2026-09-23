@@ -56,7 +56,7 @@ sidebar_position: 1
 拿到 `api_key` / `api_secret` 后，先确认凭证可用再写业务代码。下面这个接口**不受套餐限制**，是最干净的自检入口：
 
 ```bash
-GET https://dev.alphacargo.io/api/organizations
+GET https://staging.alphacargo.io/api/organizations
 ```
 
 它需要签名。完整的可运行示例（Node.js / Python）在[组织鉴权](./authentication.md)一章，你也可以直接[导入 Postman Collection](./postman.md) —— 里面已经内置了自动签名脚本，填上 key/secret 就能点。
@@ -74,7 +74,7 @@ GET https://dev.alphacargo.io/api/organizations
 
 ## 约定
 
-- 所有示例的基地址都是 `https://dev.alphacargo.io`（开发环境）。正式接入时换成你拿到的域名。
+- 所有示例的基地址都是 `https://staging.alphacargo.io`（测试环境）。请先在测试环境跑通，正式接入时再换成你拿到的生产域名。
 - 示例中的 `ak_example...` / `as_example...` 是占位值，请替换成你自己的凭证。
 - 时间除特别说明外都是 ISO 8601 UTC。
 - 请求和响应都是 `application/json`，除非接口明确返回 PDF 或接收 `multipart/form-data`。

@@ -95,7 +95,7 @@ async function callApi(path, body, { apiKey, apiSecret }) {
   const payload = { ...body, api_key: apiKey, nonceStr: String(Date.now()) };
   payload.sign = sign(payload, apiSecret);
 
-  const res = await fetch('https://dev.alphacargo.io' + path, {
+  const res = await fetch('https://staging.alphacargo.io' + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept-Language': 'zh' },
     body: JSON.stringify(payload),
@@ -116,7 +116,7 @@ async function getApi(path, params, { apiKey, apiSecret }) {
   payload.sign = sign(payload, apiSecret);
 
   const qs = new URLSearchParams(payload).toString();
-  const res = await fetch(`https://dev.alphacargo.io${path}?${qs}`, {
+  const res = await fetch(`https://staging.alphacargo.io${path}?${qs}`, {
     headers: { 'Accept-Language': 'zh' },
   });
   return res.json();
@@ -173,7 +173,7 @@ def call_api(path, body, api_key, api_secret):
     payload['sign'] = sign(payload, api_secret)
 
     resp = requests.post(
-        'https://dev.alphacargo.io' + path,
+        'https://staging.alphacargo.io' + path,
         json=payload,
         headers={'Accept-Language': 'zh'},
         timeout=30,
