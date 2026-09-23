@@ -47,6 +47,8 @@ Alpha Cargo TMS 管的是货从**发出**到**签收**的全过程：录运单�
 | 维护客户和承运商 | [合作伙伴](/guide/tms/partners/sender-accounts)一章 |
 | 出账、开票、收款 | [钱是怎么走的](/guide/tms/billing/overview) |
 | 配服务、权限、自动化 | [设置](/guide/tms/settings/organization)一章 |
+| 卡住了 | [常见问题](/guide/tms/reference/faq) |
+| 某个词是什么意思 | [术语表](/guide/tms/reference/glossary) |
 
 ## 看不到某个菜单？
 

@@ -85,6 +85,21 @@ const sidebars: SidebarsConfig = {
         'tms/settings/labels-integrations',
       ],
     },
+    {
+      type: 'category',
+      label: '面向客户',
+      items: ['tms/customers/tracking'],
+    },
+    {
+      type: 'category',
+      label: '参考',
+      items: [
+        'tms/reference/glossary',
+        'tms/reference/permissions',
+        'tms/reference/features',
+        'tms/reference/faq',
+      ],
+    },
   ],
 
   guideWmsSidebar: ['wms/index'],
