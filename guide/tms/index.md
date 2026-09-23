@@ -44,8 +44,9 @@ Alpha Cargo TMS 管的是货从**发出**到**签收**的全过程：录运单�
 | 排车派司机 | [配送规划](/guide/tms/delivery/planning) |
 | 带司机上手 | [司机扫码](/guide/tms/driver/scan) 和[送达确认](/guide/tms/driver/pod) |
 | 查某个状态是什么意思 | [运单状态参考](/guide/tms/waybills/statuses) |
-
-计费、合作伙伴、设置几章正在补，会陆续上线。
+| 维护客户和承运商 | [合作伙伴](/guide/tms/partners/sender-accounts)一章 |
+| 出账、开票、收款 | [钱是怎么走的](/guide/tms/billing/overview) |
+| 配服务、权限、自动化 | [设置](/guide/tms/settings/organization)一章 |
 
 ## 看不到某个菜单？
 
