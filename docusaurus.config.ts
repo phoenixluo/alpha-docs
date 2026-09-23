@@ -22,10 +22,15 @@ const config: Config = {
   onBrokenLinks: 'throw',
 
   markdown: {
+    mermaid: true,
     hooks: {
       onBrokenMarkdownLinks: 'throw',
     },
   },
+
+  // Flow diagrams mix CJK and ASCII, which no monospace font aligns
+  // consistently — they are drawn as real diagrams, not as text art.
+  themes: ['@docusaurus/theme-mermaid'],
 
   i18n: {
     // zh-Hans rather than zh: Docusaurus ships translated theme strings for it.
@@ -99,6 +104,14 @@ const config: Config = {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
       additionalLanguages: ['bash', 'json', 'python'],
+    },
+    mermaid: {
+      theme: { light: 'neutral', dark: 'dark' },
+      // CJK labels have no spaces to break on, so the default 200px wrap
+      // splits them mid-phrase. Give labels room to sit on one line.
+      options: {
+        flowchart: { wrappingWidth: 320 },
+      },
     },
   } satisfies Preset.ThemeConfig,
 };

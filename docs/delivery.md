@@ -152,8 +152,9 @@ GET /api/load-planning/deliveries/{id}/plan
 
 除第 1 步外，所有接口都需要 `X-Sender-Account-Id` 这个 header，见[鉴权章节](./authentication.md#x-sender-account-id模式-b-必读)。
 
-```text
-地址解析 → 报价 → (看支付方式) → 支付 → 自动生成运单+配送 → 跟踪
+```mermaid
+flowchart LR
+    r["地址解析<br/>取得经纬度"] --> q["报价"] --> m["查支付方式"] --> p["支付"] --> o["自动生成<br/>运单与配送"] --> t["跟踪"]
 ```
 
 ### 第 1 步：报价
